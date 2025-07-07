@@ -1,9 +1,9 @@
 import { PlayerValues } from '../interfaces/PlayerValues.js';
 import { SettablePlayerValues } from '../interfaces/SettablePlayerValues.js';
 
-/** 
+/**
  * Class representing a player
- * 
+ *
  * See {@link PlayerValues} for detailed descriptions of properties.
  */
 export class Player {
@@ -48,6 +48,10 @@ export class Player {
         return this.#id;
     }
 
+    get id(): PlayerValues['id'] {
+        return this.#id;
+    }
+
     getName(): PlayerValues['name'] {
         return this.#name;
     }
@@ -81,7 +85,7 @@ export class Player {
 
     /**
      * Adds a match to the player's record.
-     * 
+     *
      * Throws an error if attempting to duplicate a match.
      * @param match Object with match details
      */
@@ -111,7 +115,7 @@ export class Player {
 
     /**
      * Removes a match from player history.
-     * 
+     *
      * Throws an error if the match doesn't exist in the player's records.
      * @param id The ID of the match
      */
@@ -125,9 +129,9 @@ export class Player {
 
     /**
      * Updates the details of a match.
-     * 
+     *
      * Throws an error if the match doesn't exist in the player's records.
-     * 
+     *
      * Only needs to contain properties that are being changed.
      * @param id The ID of the match
      * @param values The match details being changed

@@ -9,9 +9,9 @@ import { TournamentValues } from '../interfaces/TournamentValues.js';
 import { SettableTournamentValues } from '../interfaces/SettableTournamentValues.js';
 import { ExportedTournamentValues } from '../interfaces/ExportedTournamentValues.js';
 
-/** 
+/**
  * Class representing a tournament.
- * 
+ *
  * See {@link TournamentValues} for detailed descriptions of properties.
  */
 export class Tournament {
@@ -118,7 +118,7 @@ export class Tournament {
                     } else {
                         matches = Pairings.SingleElimination(players.map(p => p.getId()), this.#round, this.#stageTwo.consolation, true);
                     }
-                    
+
                 } else if (format === 'double-elimination') {
                     matches = Pairings.DoubleElimination(players.map(p => p.getId()), this.#round, this.#status === 'stage-one' ? this.#sorting !== 'none' : true);
                 } else if (format === 'stepladder') {
@@ -466,6 +466,10 @@ export class Tournament {
         return this.#status;
     }
 
+    get status(): TournamentValues['status'] {
+        return this.#status;
+    }
+
     getRoundNumber(): TournamentValues['round'] {
         return this.#round;
     }
@@ -487,6 +491,10 @@ export class Tournament {
     }
 
     getMatches(): TournamentValues['matches'] {
+        return this.#matches;
+    }
+
+    get matches(): TournamentValues['matches'] {
         return this.#matches;
     }
 
@@ -557,7 +565,7 @@ export class Tournament {
 
     /**
      * Create a new player.
-     * 
+     *
      * Throws an error if ID is specified and already exists, if the specified maximum number of players has been reached, if the tournament is in stage one and not Swiss format, or if the tournament is in stage two or complete.
      * @param name Alias of the player
      * @param id ID of the player (randomly assigned if omitted)
@@ -590,11 +598,11 @@ export class Tournament {
 
     /**
      * Remove a player.
-     * 
+     *
      * Throws an error if no player has the ID specified or if the player is already inactive.
-     * 
+     *
      * In active elimination and stepladder formats, adjusts paths for any matches that interact with the match the player is in.
-     * 
+     *
      * In active round-robin formats, replaces the player in all future matches with a bye.
      * @param id ID of the player
      */
@@ -725,9 +733,9 @@ export class Tournament {
         }
     }
 
-    /** 
+    /**
      * Start the tournament.
-     * 
+     *
      * Throws an error if there are an insufficient number of players (4 if double elimination, otherwise 2).
      */
     startTournament(): void {
@@ -748,9 +756,9 @@ export class Tournament {
         }
     }
 
-    /** 
+    /**
      * Progress to the next round in the tournament.
-     * 
+     *
      * Throws an error if there are active matches, if the current format is elimination or stepladder, or when attempting to create matches for stage two and there are an insufficient number of players.
      */
     nextRound(): void {
@@ -823,9 +831,9 @@ export class Tournament {
 
     /**
      * Updates the result of a match.
-     * 
+     *
      * Throws an error if no match has the ID specified or any player scores more than half the best of value
-     * 
+     *
      * In elimination and stepladder formats, moves players to their appropriate next matches.
      * @param id ID of the match
      * @param player1Wins Number of wins for player one
@@ -884,7 +892,7 @@ export class Tournament {
                     });
                 }
             }
-            if (winMatch.getPlayer1().id !== null && winMatch.getPlayer2().id !== null) { 
+            if (winMatch.getPlayer1().id !== null && winMatch.getPlayer2().id !== null) {
                 winMatch.set({ active: true });
                 this.getPlayer(winMatch.getPlayer1().id).addMatch({
                     id: winMatch.getId(),
@@ -965,9 +973,9 @@ export class Tournament {
 
     /**
      * Clears the results of a match.
-     * 
+     *
      * Throws an error if no match has the ID specified or if the match is still active.
-     * 
+     *
      * In elimination and stepladder formats, it reverses the progression of players in the bracket.
      * @param id The ID of the match
      */
@@ -1031,7 +1039,7 @@ export class Tournament {
 
     /**
      * Assigns a bye to a player in a specified round.
-     * 
+     *
      * Throws an error if it is not actively Swiss pairings, no player has the ID specified, if the player is already inactive, or if the player already has a match in the round.
      * @param id The ID of the player
      * @param round The round number
@@ -1074,9 +1082,9 @@ export class Tournament {
 
     /**
      * Assigns a loss to a player in a specified round.
-     * 
+     *
      * Throws an error if it is not actively Swiss pairings, no player has the ID specified, or if the player is already inactive.
-     * 
+     *
      * If the player has a match in the specified round, it is removed, they are assigned a loss, and the opponent is assigned a bye.
      * @param id The ID of the player
      * @param round The round number

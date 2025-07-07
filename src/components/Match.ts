@@ -1,9 +1,9 @@
 import { MatchValues } from "../interfaces/MatchValues.js";
 import { SettableMatchValues } from "../interfaces/SettableMatchValues.js";
 
-/** 
+/**
  * Class representing a match.
- * 
+ *
  * See {@link MatchValues} for detailed descriptions of properties.
  */
 export class Match {
@@ -81,7 +81,15 @@ export class Match {
         return this.#id;
     }
 
+    get id(): MatchValues['id'] {
+        return this.#id;
+    }
+
     getRoundNumber(): MatchValues['round'] {
+        return this.#round;
+    }
+
+    get roundNumber(): MatchValues['round'] {
         return this.#round;
     }
 
@@ -89,7 +97,15 @@ export class Match {
         return this.#match;
     }
 
+    get matchNumber(): MatchValues['match'] {
+        return this.#match;
+    }
+
     isActive(): MatchValues['active'] {
+        return this.#active;
+    }
+
+    get active(): MatchValues['active'] {
         return this.#active;
     }
 
@@ -107,11 +123,23 @@ export class Match {
         return this.#bye;
     }
 
+    get bye(): MatchValues['bye'] {
+        return this.#bye;
+    }
+
     getPlayer1(): MatchValues['player1'] {
         return this.#player1;
     }
 
+    get player1(): MatchValues['player1'] {
+        return this.#player1;
+    }
+
     getPlayer2(): MatchValues['player2'] {
+        return this.#player2;
+    }
+
+    get player2(): MatchValues['player2'] {
         return this.#player2;
     }
 
@@ -126,6 +154,10 @@ export class Match {
     }
 
     getPath(): MatchValues['path'] {
+        return this.#path;
+    }
+
+    get path(): MatchValues['path'] {
         return this.#path;
     }
 
