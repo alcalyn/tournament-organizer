@@ -127,4 +127,64 @@ describe('Manager', () => {
         expect(reloaded.standings(false)[0].player.id).to.equal(winner);
         expect(JSON.stringify(reloaded)).to.not.equal(stored);
     });
+    it('gives every tournament a distinct generated ID', () => {
+        const manager = new Manager();
+        for (let i = 0; i < 20; i++) {
+            manager.createTournament(`Event ${i}`);
+        }
+        const ids = manager.tournaments.map(t => t.id);
+        expect(new Set(ids).size).to.equal(20);
+    });
+
+    it('manages several tournaments independently', () => {
+        const manager = new Manager();
+        const swiss = manager.createTournament('Swiss', { stageOne: { format: 'swiss' } }, 'swiss');
+        const cup = manager.createTournament('Cup', { stageOne: { format: 'single-elimination' } }, 'cup');
+        ['Alice', 'Bob', 'Carol', 'Dave'].forEach((name, i) => {
+            swiss.createPlayer(name, `s${i}`);
+            cup.createPlayer(name, `c${i}`);
+        });
+        swiss.start();
+        expect(cup.status).to.equal('setup');
+        expect(cup.matches).to.have.lengthOf(0);
+        cup.start();
+        expect(swiss.matches.every(m => cup.matches.every(c => c.id !== m.id))).to.equal(true);
+    });
+
+    it('reloads a Swiss tournament mid-round and can continue it', () => {
+        const manager = new Manager();
+        const original = manager.createTournament('Swiss', {
+            stageOne: { format: 'swiss' },
+            scoring: { win: 3, draw: 1, loss: 0, bye: 3 }
+        }, 'swiss');
+        for (let i = 1; i <= 5; i++) {
+            original.createPlayer(`Player ${i}`, `p${i}`);
+        }
+        original.start();
+        original.matches.filter(m => m.active === true).forEach(m => original.enterResult(m.id, 1, 0));
+        original.next();
+
+        const reloaded = new Manager().reloadTournament(JSON.parse(JSON.stringify(original)));
+        expect(reloaded.round).to.equal(2);
+        expect(reloaded.status).to.equal('stage-one');
+        expect(reloaded.matches).to.have.lengthOf(original.matches.length);
+        expect(reloaded.standings(false).map(s => [s.player.id, s.matchPoints]))
+            .to.deep.equal(original.standings(false).map(s => [s.player.id, s.matchPoints]));
+
+        reloaded.matches.filter(m => m.active === true).forEach(m => reloaded.enterResult(m.id, 1, 0));
+        reloaded.next();
+        expect(reloaded.round).to.equal(3);
+    });
+
+    it('keeps a removed tournament usable as a returned object', () => {
+        const manager = new Manager();
+        const tournament = manager.createTournament('Cup', {}, 'cup');
+        tournament.createPlayer('Alice', 'a');
+        tournament.createPlayer('Bob', 'b');
+        tournament.start();
+        const removed = manager.removeTournament('cup');
+        expect(manager.tournaments).to.have.lengthOf(0);
+        expect(removed.matches).to.have.lengthOf(1);
+        expect(removed.standings(false)).to.have.lengthOf(2);
+    });
 });

@@ -35,4 +35,21 @@ describe('Match', () => {
         match.values = { path: { win: 'm5' } };
         expect(match.path).to.deep.equal({ win: 'm5', loss: null });
     });
+    it('leaves players and path untouched when values omits them', () => {
+        const match = new Match('m1', 1, 1);
+        match.values = { player1: { id: 'abc' }, path: { win: 'm5' } };
+        match.values = { bye: true, meta: { table: 3 } };
+        expect(match.bye).to.equal(true);
+        expect(match.meta).to.deep.equal({ table: 3 });
+        expect(match.player1.id).to.equal('abc');
+        expect(match.path.win).to.equal('m5');
+    });
+
+    it('can clear a player back out of the match', () => {
+        const match = new Match('m1', 1, 1);
+        match.values = { active: true, player1: { id: 'abc', win: 1 } };
+        match.values = { active: false, player1: { id: null, win: 0 } };
+        expect(match.active).to.equal(false);
+        expect(match.player1).to.deep.equal({ id: null, win: 0, loss: 0, draw: 0 });
+    });
 });
