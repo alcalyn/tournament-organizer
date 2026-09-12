@@ -16,6 +16,11 @@ const playRound = (tournament: Tournament): void => {
     tournament.matches.filter(m => m.active === true).forEach(m => tournament.enterResult(m.id, 1, 0));
 };
 
+/** Plays the active matches of the current round only, with player one winning each. */
+const playCurrentRound = (tournament: Tournament): void => {
+    tournament.matches.filter(m => m.active === true && m.round === tournament.round).forEach(m => tournament.enterResult(m.id, 1, 0));
+};
+
 describe('Tournament', () => {
     describe('setup', () => {
         it('starts in setup with default settings', () => {
@@ -93,30 +98,81 @@ describe('Tournament', () => {
     });
 
     describe('round-robin', () => {
-        it('pairs every player once per round', () => {
+        it('pairs every player once per round, and makes every match playable right away', () => {
             const tournament = withPlayers(4, { stageOne: { format: 'round-robin' } });
             tournament.start();
             expect(tournament.stageOne.rounds).to.equal(3);
             expect(tournament.matches).to.have.lengthOf(6);
-            const opponents = tournament.players.map(p => p.matches.length);
-            expect(opponents).to.deep.equal([1, 1, 1, 1]);
+            // Every player knows all of their matches from the start, not just the current round.
+            expect(tournament.players.map(p => p.matches.length)).to.deep.equal([3, 3, 3, 3]);
+            expect(tournament.matches.filter(m => m.active === true)).to.have.lengthOf(6);
         });
 
-        it('refuses to advance with active matches, then advances', () => {
+        it('refuses to advance while the current round is unfinished, then advances', () => {
             const tournament = withPlayers(4, { stageOne: { format: 'round-robin' } });
             tournament.start();
             expect(thrown(() => tournament.next())).to.equal('Can not advance rounds with active matches');
-            tournament.matches.filter(m => m.active === true).forEach(m => tournament.enterResult(m.id, 1, 0));
+            playCurrentRound(tournament);
             tournament.next();
             expect(tournament.round).to.equal(2);
-            expect(tournament.matches.filter(m => m.active === true)).to.have.lengthOf(2);
+            expect(tournament.matches.filter(m => m.active === true)).to.have.lengthOf(4);
+        });
+
+        it('scores a last round match entered while the first round is still running', () => {
+            const tournament = withPlayers(6, {
+                stageOne: { format: 'round-robin' },
+                scoring: { win: 3, draw: 1, loss: 0 }
+            });
+            tournament.start();
+            expect(tournament.round).to.equal(1);
+            const lastRoundMatch = tournament.matches.find(m => m.round === 5)!;
+            tournament.enterResult(lastRoundMatch.id, 1, 0);
+            const winner = tournament.standings().find(s => s.player.id === lastRoundMatch.player1.id)!;
+            expect(winner.matchPoints).to.equal(3);
+            expect(tournament.standings().find(s => s.player.id === lastRoundMatch.player2.id)!.matchPoints).to.equal(0);
+            // The tournament has not moved on: round one is still the current round.
+            expect(tournament.round).to.equal(1);
+            expect(thrown(() => tournament.next())).to.equal('Can not advance rounds with active matches');
+
+            // Finishing round one advances without recounting or dropping the round five result.
+            playCurrentRound(tournament);
+            tournament.next();
+            expect(tournament.round).to.equal(2);
+            expect(tournament.standings().find(s => s.player.id === lastRoundMatch.player1.id)!.matchPoints).to.be.at.least(3);
+            expect(tournament.standings().find(s => s.player.id === lastRoundMatch.player1.id)!.matches).to.be.at.most(2);
+        });
+
+        it('clears the result of a future round match', () => {
+            const tournament = withPlayers(6, {
+                stageOne: { format: 'round-robin' },
+                scoring: { win: 3, draw: 1, loss: 0 }
+            });
+            tournament.start();
+            const lastRoundMatch = tournament.matches.find(m => m.round === 5)!;
+            tournament.enterResult(lastRoundMatch.id, 1, 0);
+            tournament.clearResult(lastRoundMatch.id);
+            expect(lastRoundMatch.active).to.equal(true);
+            expect(tournament.standings().every(s => s.matchPoints === 0)).to.equal(true);
+        });
+
+        it('awards byes of every round immediately', () => {
+            const tournament = withPlayers(5, {
+                stageOne: { format: 'round-robin' },
+                scoring: { win: 3, draw: 1, loss: 0, bye: 3 }
+            });
+            tournament.start();
+            const byes = tournament.matches.filter(m => m.bye === true);
+            expect(byes).to.have.lengthOf(5);
+            expect(tournament.players.every(p => p.matches.filter(m => m.bye === true).length === 1)).to.equal(true);
+            // Each bye is already worth its points, whatever round it belongs to.
+            expect(tournament.standings().every(s => s.matchPoints === 3)).to.equal(true);
         });
 
         it('is complete once the last round is played', () => {
             const tournament = withPlayers(4, { stageOne: { format: 'round-robin' } });
             tournament.start();
             for (let round = 1; round <= 3; round++) {
-                tournament.matches.filter(m => m.active === true).forEach(m => tournament.enterResult(m.id, 1, 0));
+                playCurrentRound(tournament);
                 tournament.next();
             }
             expect(tournament.status).to.equal('complete');
@@ -130,7 +186,7 @@ describe('Tournament', () => {
                 scoring: { win: 3, draw: 1, loss: 0 }
             });
             tournament.start();
-            tournament.matches.filter(m => m.active === true).forEach(m => tournament.enterResult(m.id, 1, 0));
+            playCurrentRound(tournament);
             tournament.next();
             const standings = tournament.standings();
             expect(standings).to.have.lengthOf(4);
@@ -239,7 +295,7 @@ describe('Tournament', () => {
             const tournament = withPlayers(4, { stageOne: { format: 'round-robin', initialRound: 5 } });
             tournament.start();
             expect(tournament.round).to.equal(5);
-            expect(tournament.matches.filter(m => m.active === true).every(m => m.round === 5)).to.equal(true);
+            expect(tournament.matches.every(m => m.round >= 5)).to.equal(true);
         });
     });
 
@@ -302,10 +358,10 @@ describe('Tournament', () => {
             expect(tournament.stageOne.rounds).to.equal(3);
             // Three rounds, each with one real match and one bye.
             expect(tournament.matches).to.have.lengthOf(6);
-            expect(tournament.matches.filter(m => m.active === true)).to.have.lengthOf(1);
+            expect(tournament.matches.filter(m => m.active === true)).to.have.lengthOf(3);
 
             for (let round = 1; round <= 3; round++) {
-                playRound(tournament);
+                playCurrentRound(tournament);
                 tournament.next();
             }
             expect(tournament.status).to.equal('complete');
@@ -367,13 +423,25 @@ describe('Tournament', () => {
     });
 
     describe('double round-robin', () => {
+        it('makes the return leg playable from the start', () => {
+            const tournament = withPlayers(4, {
+                stageOne: { format: 'double-round-robin' },
+                scoring: { win: 3, draw: 1, loss: 0 }
+            });
+            tournament.start();
+            const returnLegMatch = tournament.matches.find(m => m.round === 6)!;
+            expect(returnLegMatch.active).to.equal(true);
+            tournament.enterResult(returnLegMatch.id, 1, 0);
+            expect(tournament.standings().find(s => s.player.id === returnLegMatch.player1.id)!.matchPoints).to.equal(3);
+        });
+
         it('pairs every player twice', () => {
             const tournament = withPlayers(4, { stageOne: { format: 'double-round-robin' } });
             tournament.start();
             expect(tournament.stageOne.rounds).to.equal(6);
             expect(tournament.matches).to.have.lengthOf(12);
             for (let round = 1; round <= 6; round++) {
-                playRound(tournament);
+                playCurrentRound(tournament);
                 tournament.next();
             }
             expect(tournament.status).to.equal('complete');
@@ -553,12 +621,17 @@ describe('Tournament', () => {
         it('replaces a removed player with a bye in later round-robin rounds', () => {
             const tournament = withPlayers(4, { stageOne: { format: 'round-robin' } });
             tournament.start();
-            playRound(tournament);
+            playCurrentRound(tournament);
             tournament.next();
             tournament.removePlayer('p1');
             const laterMatches = tournament.matches.filter(m => m.round > tournament.round);
             expect(laterMatches).to.have.length.greaterThan(0);
             expect(laterMatches.some(m => m.player1.id === 'p1' || m.player2.id === 'p1')).to.equal(false);
+            // The withdrawn player keeps only the match they actually played, and their remaining
+            // opponents get a bye instead of a match that can never be entered.
+            expect(tournament.players.find(p => p.id === 'p1')!.matches).to.have.lengthOf(1);
+            expect(tournament.matches.filter(m => m.active === true).some(m => m.player1.id === 'p1' || m.player2.id === 'p1')).to.equal(false);
+            expect(laterMatches.filter(m => m.player1.id === null || m.player2.id === null).every(m => m.bye === true)).to.equal(true);
         });
 
         it('counts draws for both players', () => {

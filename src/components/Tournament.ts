@@ -107,6 +107,40 @@ export class Tournament {
         return match;
     }
 
+    /**
+     * Makes a round-robin match live: byes are immediately awarded, and every other match is
+     * marked active and added to both players' records so its result can be entered at any time.
+     */
+    #activateRoundRobinMatch(match: Match): void {
+        if (match.player1.id === null || match.player2.id === null) {
+            this.#player(match.player1.id === null ? match.player2.id : match.player1.id).addMatch({
+                id: match.id,
+                opponent: null,
+                bye: true,
+                win: Math.ceil(this.scoring.bestOf / 2)
+            });
+            match.values = {
+                bye: true,
+                player1: {
+                    win: match.player2.id === null ? Math.ceil(this.scoring.bestOf / 2) : 0
+                },
+                player2: {
+                    win: match.player1.id === null ? Math.ceil(this.scoring.bestOf / 2) : 0
+                }
+            };
+        } else {
+            match.values = { active: true };
+            this.#player(match.player1.id).addMatch({
+                id: match.id,
+                opponent: match.player2.id
+            });
+            this.#player(match.player2.id).addMatch({
+                id: match.id,
+                opponent: match.player1.id
+            });
+        }
+    }
+
     /** Set tournament options (only changes in options need to be included in the object) */
     set settings(options: SettableTournamentValues) {
         if (options.players !== undefined) {
@@ -205,7 +239,6 @@ export class Tournament {
                     } while (this.matches.some(m => m.id === id));
                     const newMatch = new Match(id, match.round, match.match);
                     newMatch.values = {
-                        active: match.round === this.round && match.player1 !== null && match.player2 !== null,
                         player1: {
                             id: match.player1 === null ? null : match.player1.toString()
                         },
@@ -214,33 +247,7 @@ export class Tournament {
                         }
                     };
                     this.matches.push(newMatch);
-                    if (newMatch.player1.id === null || newMatch.player2.id === null) {
-                        newMatch.values = {
-                            bye: true,
-                            player1: {
-                                win: Math.ceil(this.scoring.bestOf / 2)
-                            }
-                        };
-                    }
-                    if (match.round === this.round) {
-                        if (newMatch.player1.id === null || newMatch.player2.id === null) {
-                            this.#player(newMatch.player1.id === null ? newMatch.player2.id : newMatch.player1.id).addMatch({
-                                id: id,
-                                opponent: null,
-                                bye: true,
-                                win: Math.ceil(this.scoring.bestOf / 2)
-                            });
-                        } else {
-                            this.#player(newMatch.player1.id).addMatch({
-                                id: id,
-                                opponent: newMatch.player2.id
-                            });
-                            this.#player(newMatch.player2.id).addMatch({
-                                id: id,
-                                opponent: newMatch.player1.id
-                            });
-                        }
-                    }
+                    this.#activateRoundRobinMatch(newMatch);
                 });
                 if (format === 'double-round-robin') {
                     matches = Pairings.RoundRobin(players.map(p => p.id), this.matches.reduce((max, curr) => Math.max(max, curr.round), 0) + 1, this.status === 'stage-one' ? this.sorting !== 'none' : true);
@@ -254,7 +261,6 @@ export class Tournament {
                         } while (this.matches.some(m => m.id === id));
                         const newMatch = new Match(id, match.round, match.match);
                         newMatch.values = {
-                            active: match.round === this.round,
                             player1: {
                                 id: match.player2 === null ? null : match.player2.toString()
                             },
@@ -263,6 +269,7 @@ export class Tournament {
                             }
                         };
                         this.matches.push(newMatch);
+                        this.#activateRoundRobinMatch(newMatch);
                     });
                 }
                 break;
@@ -578,16 +585,21 @@ export class Tournament {
                 }
             }
         } else if (['round-robin', 'double-round-robin'].includes(this.stageOne.format)) {
-            const byeMatches = this.matches.filter(match => match.round > this.round && (match.player1.id === player.id || match.player2.id === player.id));
+            const byeMatches = this.matches.filter(match => match.active === true && (match.player1.id === player.id || match.player2.id === player.id));
             byeMatches.forEach(match => {
+                const opponent = this.#player(match.player1.id === player.id ? match.player2.id : match.player1.id);
+                player.removeMatch(match.id);
+                opponent.removeMatch(match.id);
                 match.values = {
+                    active: false,
                     player1: {
                         id: match.player1.id === player.id ? null : match.player1.id
                     },
                     player2: {
                         id: match.player2.id === player.id ? null : match.player2.id
                     }
-                }
+                };
+                this.#activateRoundRobinMatch(match);
             });
         }
     }
@@ -627,7 +639,10 @@ export class Tournament {
         if (['single-elimination', 'double-elimination', 'stepladder'].includes(this.stageOne.format)) {
             throw `Can not advance rounds in elimination or stepladder`;
         }
-        if (this.matches.filter(match => match.active === true).length > 0) {
+        const blockingMatches = ['round-robin', 'double-round-robin'].includes(this.stageOne.format)
+            ? this.matches.filter(match => match.active === true && match.round === this.round)
+            : this.matches.filter(match => match.active === true);
+        if (blockingMatches.length > 0) {
             throw `Can not advance rounds with active matches`;
         }
         this.round++;
@@ -648,45 +663,12 @@ export class Tournament {
             } else {
                 this.end();
             }
-        } else {
-            if (['round-robin', 'double-round-robin'].includes(this.stageOne.format)) {
-                const matches = this.matches.filter(m => m.round === this.round);
-                matches.forEach(match => {
-                    if (match.player1.id === null || match.player2.id === null) {
-                        this.#player(match.player1.id === null ? match.player2.id : match.player1.id).addMatch({
-                            id: match.id,
-                            opponent: null,
-                            bye: true,
-                            win: Math.ceil(this.scoring.bestOf / 2)
-                        });
-                        match.values = {
-                            bye: true,
-                            player1: {
-                                win: match.player2.id === null ? Math.ceil(this.scoring.bestOf / 2) : 0
-                            },
-                            player2: {
-                                win: match.player1.id === null ? Math.ceil(this.scoring.bestOf / 2) : 0
-                            }
-                        }
-                    } else {
-                        match.values = { active: true }
-                        this.#player(match.player1.id).addMatch({
-                            id: match.id,
-                            opponent: match.player2.id
-                        });
-                        this.#player(match.player2.id).addMatch({
-                            id: match.id,
-                            opponent: match.player1.id
-                        });
-                    }
-                });
-            } else {
-                const players = this.players.filter(p => p.active === true);
-                if (this.sorting !== 'none') {
-                    players.sort((a, b) => this.sorting === 'ascending' ? a.value - b.value : b.value - a.value);
-                }
-                this.#createMatches(players);
+        } else if (!['round-robin', 'double-round-robin'].includes(this.stageOne.format)) {
+            const players = this.players.filter(p => p.active === true);
+            if (this.sorting !== 'none') {
+                players.sort((a, b) => this.sorting === 'ascending' ? a.value - b.value : b.value - a.value);
             }
+            this.#createMatches(players);
         }
     }
 
