@@ -1,5 +1,5 @@
 import randomstring from 'randomstring';
-import * as Pairings from 'tournament-pairings';
+import * as Pairings from '../pairings/index.js';
 import { Match } from './Match.js';
 import { Player } from './Player.js';
 import { StandingsValues } from '../interfaces/StandingsValues.js';

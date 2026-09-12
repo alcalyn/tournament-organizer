@@ -22,7 +22,13 @@ For non-elimination tournaments, the following tiebreaker systems are supported 
 * Opponent's opponent's match win percentage
 
 ### About Pairings
-Details can be found in the [`tournament-pairings`](https://github.com/slashinfty/tournament-pairings#algorithms) readme.
+Pairing algorithms live in `src/pairings`, with one module per format.
+
+### Testing
+```shell
+npm test
+```
+`test/` mirrors `src/`: `test/pairings` covers the pairing algorithms, `test/components` covers `Manager`, `Tournament`, `Player` and `Match`.
 
 ## Contributing
 Please submit an issue if you encounter a bug or have a feature suggestion.
@@ -49,6 +55,9 @@ import TournamentOrganizer from "https://esm.sh/tournament-organizer/dist/index.
 
 ## Documentation
 Available online: [https://slashinfty.github.io/tournament-organizer/](https://slashinfty.github.io/tournament-organizer/)
+
+## License
+[GNU General Public License v3 or later](LICENSE). Third-party notices are in [`NOTICE`](NOTICE).
 
 ## Discussion
 
