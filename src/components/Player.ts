@@ -37,7 +37,7 @@ export class Player {
 
     /** Set information about the player (only changes in information need to be included in the object). */
     set values(options: SettablePlayerValues) {
-        if (options.hasOwnProperty('matches')) {
+        if (options.matches !== undefined) {
             options.matches = [...this.matches, ...options.matches];
         }
         Object.assign(this, options);

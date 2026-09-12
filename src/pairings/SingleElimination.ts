@@ -1,9 +1,9 @@
-import { Match } from './Match.js';
+import { Match, PlayerID } from './Match.js';
 import { shuffle } from './Shuffle.js';
 
 export function SingleElimination(players: number | string[], startingRound: number = 1, consolation: boolean = false, ordered: boolean = false) : Match[] {
-    const matches = [];
-    let playerArray = [];
+    const matches: Match[] = [];
+    let playerArray: PlayerID[];
     if (Array.isArray(players)) {
         playerArray = ordered ? players : shuffle(players);
     } else {
@@ -59,8 +59,9 @@ export function SingleElimination(players: number | string[], startingRound: num
     if (remainder !== 0) {
         const initialRound = matches.filter(m => m.round === startingRound);
         let counter = 0;
+        const seedIndex = (player: PlayerID | null): number => player === null ? -1 : playerArray.indexOf(player);
         matches.filter(m => m.round === startingRound + 1).forEach((m, i) => {
-            const [index1, index2] = [playerArray.indexOf(m.player1), playerArray.indexOf(m.player2)];
+            const [index1, index2] = [seedIndex(m.player1), seedIndex(m.player2)];
             if (index1 >= Math.pow(2, Math.floor(exponent)) - remainder) {
                 const initialMatch = initialRound[counter];
                 initialMatch.player1 = m.player1;

@@ -1,9 +1,9 @@
-import { Match } from './Match.js';
+import { Match, PlayerID } from './Match.js';
 import { shuffle } from './Shuffle.js';
 
 export function Stepladder(players: number | string[], startingRound: number = 1, ordered: boolean = true) : Match[] {
-    const matches = [];
-    let playerArray = [];
+    const matches: Match[] = [];
+    let playerArray: PlayerID[];
     if (Array.isArray(players)) {
         playerArray = ordered ? players : shuffle(players);
     } else {
@@ -26,4 +26,4 @@ export function Stepladder(players: number | string[], startingRound: number = 1
         matches.push(match);
     }
     return matches;
-}
+}

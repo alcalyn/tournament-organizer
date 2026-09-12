@@ -1,9 +1,10 @@
-import { Match } from './Match.js';
+import { mustFind } from '../utils/Find.js';
+import { Match, PlayerID } from './Match.js';
 import { shuffle } from './Shuffle.js';
 
 export function DoubleElimination(players: number | string[], startingRound: number = 1, ordered: boolean = false) : Match[] {
-    const matches = [];
-    let playerArray = [];
+    const matches: Match[] = [];
+    let playerArray: PlayerID[];
     if (Array.isArray(players)) {
         playerArray = ordered ? players : shuffle(players);
     } else {
@@ -59,8 +60,9 @@ export function DoubleElimination(players: number | string[], startingRound: num
     if (remainder !== 0) {
         const initialRound = matches.filter(m => m.round === startingRound);
         let counter = 0;
+        const seedIndex = (player: PlayerID | null): number => player === null ? -1 : playerArray.indexOf(player);
         matches.filter(m => m.round === startingRound + 1).forEach((m, i) => {
-            const [index1, index2] = [playerArray.indexOf(m.player1), playerArray.indexOf(m.player2)];
+            const [index1, index2] = [seedIndex(m.player1), seedIndex(m.player2)];
             if (index1 >= Math.pow(2, Math.floor(exponent)) - remainder) {
                 const initialMatch = initialRound[counter];
                 initialMatch.player1 = m.player1;
@@ -91,7 +93,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
         player1: null,
         player2: null,
     });
-    matches.find(m => m.round === round - 1).win = {
+    mustFind(matches, m => m.round === round - 1, `a match in round ${round - 1}`).win = {
         round: round,
         match: 1
     };
@@ -144,7 +146,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
         }
         loserExponent--;
     } while (loserExponent > -1);
-    const fillPattern = (matchCount, fillCount) => {
+    const fillPattern = (matchCount: number, fillCount: number): number[] => {
         const a = [...new Array(matchCount)].map((_, i) => i + 1);
         const c = fillCount % 4;
         const x = a.slice(0, a.length / 2);
@@ -161,7 +163,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
         let counter = 0;
         matches.filter(m => m.round === loseRound).forEach(m => {
             for (let i = 0; i < 2; i++) {
-                const match = winMatches.find(m => m.match === fill[counter]);
+                const match = mustFind(winMatches, m => m.match === fill[counter], `winners match ${fill[counter]} in round ${winRound}`);
                 match.loss = {
                     round: m.round,
                     match: m.match
@@ -176,7 +178,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
         let fill = fillPattern(winMatches.length, fillCount);
         fillCount++;
         matches.filter(m => m.round === loseRound).forEach((m, i) => {
-            const match = winMatches.find(m => m.match === fill[i]);
+            const match = mustFind(winMatches, m => m.match === fill[i], `winners match ${fill[i]} in round ${winRound}`);
             match.loss = {
                 round: m.round,
                 match: m.match
@@ -193,7 +195,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
         let routeCopy = [...routeNumbers];
         matches.filter(m => m.round === loseRound).forEach(m => {
             for (let i = 0; i < 2; i++) {
-                const match = winMatches.find(m => m.match === fill[countA]);
+                const match = mustFind(winMatches, m => m.match === fill[countA], `winners match ${fill[countA]} in round ${winRound}`);
                 if (routeCopy.some(n => n === m.match)) {
                     const lossMatch = matches.filter(x => x.round === loseRound - 1)[countB];
                     countB++;
@@ -214,7 +216,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
         winRound++;
         loseRound++;
         matches.filter(m => m.round === roundDiff + 1).forEach((m, i) => {
-            const match = matches.find(x => x.round === m.round + 1 && x.match === routeNumbers[i]);
+            const match = mustFind(matches, x => x.round === m.round + 1 && x.match === routeNumbers[i], `match ${routeNumbers[i]} in round ${m.round + 1}`);
             m.win = {
                 round: match.round,
                 match: match.match
@@ -231,7 +233,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
         let countB = 0;
         let routeNumbers = matches.filter(m => m.round === 2 && m.player1 === null && m.player2 === null).map(m => m.match);
         loseMatchesB.forEach(m => {
-            const winMatchA = winMatches.find(x => x.match === fill[countA]);
+            const winMatchA = mustFind(winMatches, x => x.match === fill[countA], `winners match ${fill[countA]} in round ${winRound}`);
             if (routeNumbers.some(n => n === m.match)) {
                 const lossMatch = loseMatchesA[countB];
                 winMatchA.loss = {
@@ -240,7 +242,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
                 };
                 countA++;
                 countB++;
-                const winMatchB = winMatches.find(x => x.match === fill[countA]);
+                const winMatchB = mustFind(winMatches, x => x.match === fill[countA], `winners match ${fill[countA]} in round ${winRound}`);
                 winMatchB.loss = {
                     round: lossMatch.round,
                     match: lossMatch.match
@@ -255,7 +257,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
         });
         winRound++;
         matches.filter(m => m.round === roundDiff + 1).forEach((m, i) => {
-            const match = matches.find(x => x.round === m.round + 1 && x.match === routeNumbers[i]);
+            const match = mustFind(matches, x => x.round === m.round + 1 && x.match === routeNumbers[i], `match ${routeNumbers[i]} in round ${m.round + 1}`);
             m.win = {
                 round: match.round,
                 match: match.match
@@ -274,7 +276,7 @@ export function DoubleElimination(players: number | string[], startingRound: num
         const fill = fillPattern(winMatches.length, fillCount);
         fillCount++;
         loseMatchesA.forEach((m, j) => {
-            const match = winMatches.find(m => m.match === fill[j]);
+            const match = mustFind(winMatches, m => m.match === fill[j], `winners match ${fill[j]} in round ${i}`);
             match.loss = {
                 round: m.round,
                 match: m.match
@@ -297,4 +299,4 @@ export function DoubleElimination(players: number | string[], startingRound: num
         match: 1
     };
     return matches;
-}
+}

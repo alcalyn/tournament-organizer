@@ -1,7 +1,12 @@
 {
+  // `files: true` loads the ambient declarations under src/types when running through ts-node
+  "ts-node": {
+    "files": true
+  },
   "include": ["./src/**/*"],
   "compilerOptions": {
     "target": "ES2019",
+    "strict": true,
     "lib": ["ES2020"],
     "module": "Node16",
     "moduleResolution": "Node16",

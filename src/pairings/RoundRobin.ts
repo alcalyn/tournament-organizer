@@ -1,9 +1,9 @@
-import { Match } from './Match.js';
+import { Match, PlayerID } from './Match.js';
 import { shuffle } from './Shuffle.js';
 
 export function RoundRobin(players: number | string[], startingRound: number = 1, ordered: boolean = false) : Match[] {
-    let matches = [];
-    let playerArray = [];
+    let matches: Match[] = [];
+    let playerArray: (PlayerID | null)[];
     if (Array.isArray(players)) {
         playerArray = ordered ? players : shuffle(players);
     } else {
@@ -13,7 +13,7 @@ export function RoundRobin(players: number | string[], startingRound: number = 1
         playerArray.push(null);
     }
     for (let r = startingRound; r < startingRound + playerArray.length - 1; r++) {
-        let round = [];
+        const round: Match[] = [];
         for (let i = 0; i < playerArray.length / 2; i++) {
             round.push({
                 round: r,
@@ -29,7 +29,7 @@ export function RoundRobin(players: number | string[], startingRound: number = 1
             });
         } else {
             const prevRound = matches.filter(m => m.round === r - 1);
-            const indexFind = idx => {
+            const indexFind = (idx: number): number => {
                 if (idx + (playerArray.length / 2) > playerArray.length - 2) {
                     return idx + 1 - (playerArray.length / 2);
                 } else {
@@ -56,4 +56,4 @@ export function RoundRobin(players: number | string[], startingRound: number = 1
         matches = [...matches, ...round];
     }
     return matches;
-}
+}

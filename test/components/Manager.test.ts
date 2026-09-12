@@ -63,7 +63,7 @@ describe('Manager', () => {
         tournament.start();
 
         const semiFinals = tournament.matches.filter(m => m.round === 1);
-        const final = tournament.matches.find(m => m.round === 2);
+        const final = tournament.matches.find(m => m.round === 2)!;
         expect(semiFinals).to.have.lengthOf(2);
         expect(semiFinals.every(m => m.active === true)).to.equal(true);
         expect(final.active).to.equal(false);
@@ -86,7 +86,7 @@ describe('Manager', () => {
         const standings = tournament.standings(false);
         expect(standings[0].player.id).to.equal(winner);
         expect(standings[0].matchPoints).to.equal(2);
-        expect(standings.find(s => s.player.id === runnerUp).matchPoints).to.equal(1);
+        expect(standings.find(s => s.player.id === runnerUp)!.matchPoints).to.equal(1);
 
         tournament.end();
         expect(tournament.status).to.equal('complete');
@@ -120,7 +120,7 @@ describe('Manager', () => {
         expect(JSON.stringify(reloaded)).to.equal(stored);
 
         // The reloaded tournament is usable, not just readable.
-        const final = reloaded.matches.find(m => m.round === 2);
+        const final = reloaded.matches.find(m => m.round === 2)!;
         expect(final.active).to.equal(true);
         const winner = final.player2.id;
         reloaded.enterResult(final.id, 0, 1);

@@ -57,7 +57,7 @@ describe('Tournament', () => {
         it('advances the winner along the path', () => {
             const tournament = withPlayers(4);
             tournament.start();
-            const final = tournament.matches.find(m => m.round === 2);
+            const final = tournament.matches.find(m => m.round === 2)!;
             const [first, second] = tournament.matches.filter(m => m.round === 1);
             const winners = [first.player1.id, second.player1.id];
             tournament.enterResult(first.id, 1, 0);
@@ -70,7 +70,7 @@ describe('Tournament', () => {
         it('refuses more wins than the format allows', () => {
             const tournament = withPlayers(4, { scoring: { bestOf: 3 } });
             tournament.start();
-            const match = tournament.matches.find(m => m.active === true);
+            const match = tournament.matches.find(m => m.active === true)!;
             expect(thrown(() => tournament.enterResult(match.id, 3, 0))).to.equal('Players can not win more than 2 games in a match');
         });
 
@@ -137,7 +137,7 @@ describe('Tournament', () => {
         it('clears a result', () => {
             const tournament = withPlayers(4, { stageOne: { format: 'round-robin' } });
             tournament.start();
-            const match = tournament.matches.find(m => m.active === true);
+            const match = tournament.matches.find(m => m.active === true)!;
             tournament.enterResult(match.id, 1, 0);
             expect(match.player1.win).to.equal(1);
             tournament.clearResult(match.id);
@@ -152,8 +152,8 @@ describe('Tournament', () => {
                 scoring: { win: 3, draw: 1, loss: 0, bye: 3 }
             });
             tournament.start();
-            const bye = tournament.matches.find(m => m.bye === true);
-            const standing = tournament.standings().find(s => s.player.id === bye.player1.id);
+            const bye = tournament.matches.find(m => m.bye === true)!;
+            const standing = tournament.standings().find(s => s.player.id === bye.player1.id)!;
             expect(standing.matchPoints).to.equal(3);
             expect(standing.player.matches.filter(m => m.bye === true)).to.have.lengthOf(1);
         });
